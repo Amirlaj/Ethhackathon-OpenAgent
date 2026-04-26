@@ -1,1 +1,1 @@
-# Ethhackathon-OpenAgent
+# Ethhackathon-OpenAgents
