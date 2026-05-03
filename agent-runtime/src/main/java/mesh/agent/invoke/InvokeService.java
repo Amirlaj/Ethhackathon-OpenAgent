@@ -17,11 +17,11 @@ import java.util.logging.Logger;
 public class InvokeService {
 
     private static final Logger log = Logger.getLogger(InvokeService.class.getName());
-    private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-    private static final String MODEL = "llama-3.1-8b-instant";
+    private static final String LLM_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    private static final String MODEL = "gemini-2.0-flash";
     private static final MediaType JSON_MEDIA = MediaType.get("application/json");
 
-    private final String groqApiKey;
+    private final String llmApiKey;
     private final String searchApiKey;
     private final DelegationService delegation;
     private final AgentIdentityService identityService;
@@ -29,12 +29,12 @@ public class InvokeService {
     private final ObjectMapper mapper;
 
     public InvokeService(
-            @Value("${GROQ_API_KEY:}") String groqApiKey,
+            @Value("${GEMINI_API_KEY:}") String llmApiKey,
             @Value("${SEARCH_API_KEY:}") String searchApiKey,
             DelegationService delegation,
             AgentIdentityService identityService
     ) {
-        this.groqApiKey = groqApiKey;
+        this.llmApiKey = llmApiKey;
         this.searchApiKey = searchApiKey;
         this.delegation = delegation;
         this.identityService = identityService;
@@ -53,9 +53,9 @@ public class InvokeService {
         if (callerEns != null) steps.add("[" + myEns + "] Called by: " + callerEns);
 
         // Check API key
-        if (groqApiKey == null || groqApiKey.isBlank()) {
-            steps.add("[ERROR] GROQ_API_KEY is not set. Cannot process task.");
-            return new InvokeResult("Error: GROQ_API_KEY environment variable is not configured.", steps);
+        if (llmApiKey == null || llmApiKey.isBlank()) {
+            steps.add("[ERROR] GEMINI_API_KEY is not set. Cannot process task.");
+            return new InvokeResult("Error: GEMINI_API_KEY environment variable is not configured.", steps);
         }
 
         // delegate tool
@@ -104,7 +104,7 @@ public class InvokeService {
         String finalAnswer = null;
 
         for (int iteration = 0; iteration < 10 && finalAnswer == null; iteration++) {
-            JsonNode response = callGroq(messages, tools, iteration == 0);
+            JsonNode response = callLlm(messages, tools, iteration == 0);
             JsonNode message = response.path("choices").path(0).path("message");
             String finishReason = response.path("choices").path(0).path("finish_reason").asText();
 
@@ -137,7 +137,7 @@ public class InvokeService {
         return new InvokeResult(finalAnswer, steps);
     }
 
-    private JsonNode callGroq(ArrayNode messages, ArrayNode tools, boolean forceTool) {
+    private JsonNode callLlm(ArrayNode messages, ArrayNode tools, boolean forceTool) {
         int maxRetries = 5;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
@@ -147,11 +147,10 @@ public class InvokeService {
                 body.set("messages", messages);
                 body.set("tools", tools);
                 body.put("tool_choice", forceTool ? "required" : "auto");
-                body.put("parallel_tool_calls", false);
 
                 Request request = new Request.Builder()
-                        .url(GROQ_URL)
-                        .addHeader("Authorization", "Bearer " + groqApiKey)
+                        .url(LLM_URL)
+                        .addHeader("Authorization", "Bearer " + llmApiKey)
                         .post(RequestBody.create(mapper.writeValueAsString(body), JSON_MEDIA))
                         .build();
 
@@ -159,12 +158,12 @@ public class InvokeService {
                     String responseBody = response.body().string();
                     if (response.code() == 429) {
                         int waitSeconds = 10 + (attempt * 5);
-                        log.warning("[Groq] Rate limited, waiting " + waitSeconds + "s (attempt " + (attempt+1) + ")");
+                        log.warning("[LLM] Rate limited, waiting " + waitSeconds + "s (attempt " + (attempt+1) + ")");
                         Thread.sleep(waitSeconds * 1000L);
                         continue;
                     }
                     if (!response.isSuccessful()) {
-                        throw new RuntimeException("Groq API error " + response.code() + ": " + responseBody);
+                        throw new RuntimeException("LLM API error " + response.code() + ": " + responseBody);
                     }
                     return mapper.readTree(responseBody);
                 }
@@ -174,10 +173,10 @@ public class InvokeService {
             } catch (RuntimeException e) {
                 throw e;
             } catch (Exception e) {
-                throw new RuntimeException("Groq call failed: " + e.getMessage(), e);
+                throw new RuntimeException("LLM call failed: " + e.getMessage(), e);
             }
         }
-        throw new RuntimeException("Groq rate limit exceeded after " + maxRetries + " retries");
+        throw new RuntimeException("LLM rate limit exceeded after " + maxRetries + " retries");
     }
 
     private String executeToolCall(String name, JsonNode args, String myEns, List<String> steps) {
