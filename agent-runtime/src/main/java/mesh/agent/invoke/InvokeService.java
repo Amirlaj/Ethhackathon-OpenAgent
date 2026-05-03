@@ -19,24 +19,28 @@ public class InvokeService {
     private static final Logger log = Logger.getLogger(InvokeService.class.getName());
     private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
     private static final String MODEL = "llama-3.1-8b-instant";
-    private static final MediaType JSON = MediaType.get("application/json");
+    private static final MediaType JSON_MEDIA = MediaType.get("application/json");
 
     private final String groqApiKey;
+    private final String searchApiKey;
     private final DelegationService delegation;
     private final AgentIdentityService identityService;
     private final OkHttpClient http;
     private final ObjectMapper mapper;
 
     public InvokeService(
-            @Value("${GROQ_API_KEY}") String groqApiKey,
+            @Value("${GROQ_API_KEY:}") String groqApiKey,
+            @Value("${SEARCH_API_KEY:}") String searchApiKey,
             DelegationService delegation,
             AgentIdentityService identityService
     ) {
         this.groqApiKey = groqApiKey;
+        this.searchApiKey = searchApiKey;
         this.delegation = delegation;
         this.identityService = identityService;
         this.http = new OkHttpClient.Builder()
-                .callTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .callTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
                 .build();
         this.mapper = new ObjectMapper();
     }
@@ -47,6 +51,12 @@ public class InvokeService {
 
         steps.add("[" + myEns + "] Received task: " + task);
         if (callerEns != null) steps.add("[" + myEns + "] Called by: " + callerEns);
+
+        // Check API key
+        if (groqApiKey == null || groqApiKey.isBlank()) {
+            steps.add("[ERROR] GROQ_API_KEY is not set. Cannot process task.");
+            return new InvokeResult("Error: GROQ_API_KEY environment variable is not configured.", steps);
+        }
 
         // delegate tool
         ObjectNode delegateParams = mapper.createObjectNode().put("type", "object");
@@ -95,7 +105,6 @@ public class InvokeService {
 
         for (int iteration = 0; iteration < 10 && finalAnswer == null; iteration++) {
             JsonNode response = callGroq(messages, tools, iteration == 0);
-            // rest stays the same
             JsonNode message = response.path("choices").path(0).path("message");
             String finishReason = response.path("choices").path(0).path("finish_reason").asText();
 
@@ -143,7 +152,7 @@ public class InvokeService {
                 Request request = new Request.Builder()
                         .url(GROQ_URL)
                         .addHeader("Authorization", "Bearer " + groqApiKey)
-                        .post(RequestBody.create(mapper.writeValueAsString(body), JSON))
+                        .post(RequestBody.create(mapper.writeValueAsString(body), JSON_MEDIA))
                         .build();
 
                 try (Response response = http.newCall(request).execute()) {
@@ -179,7 +188,7 @@ public class InvokeService {
                     String subtask    = args.path("subtask").asText();
                     steps.add("[" + myEns + "] Delegating capability='" + capability + "' via ENS");
                     DelegationResult result = delegation.delegateTo(capability, subtask, myEns);
-                    steps.add("[ENS] Resolved → " + result.peerEns());
+                    steps.add("[ENS] Resolved -> " + result.peerEns());
                     steps.addAll(result.peerSteps());
                     yield result.result();
                 }
@@ -215,14 +224,19 @@ public class InvokeService {
     }
 
     private String performWebSearch(String query) {
+        if (searchApiKey == null || searchApiKey.isBlank()) {
+            return "Web search unavailable: SEARCH_API_KEY not configured.";
+        }
+
         try {
-            String jsonBody = "{\"q\":\"" + query + "\"}";
+            // Use ObjectMapper to safely build JSON body (no injection risk)
+            ObjectNode searchBody = mapper.createObjectNode().put("q", query);
 
             Request request = new Request.Builder()
                     .url("https://google.serper.dev/search")
-                    .addHeader("X-API-KEY", System.getenv("SEARCH_API_KEY"))
+                    .addHeader("X-API-KEY", searchApiKey)
                     .addHeader("Content-Type", "application/json")
-                    .post(RequestBody.create(jsonBody, JSON))
+                    .post(RequestBody.create(mapper.writeValueAsString(searchBody), JSON_MEDIA))
                     .build();
 
             try (Response response = http.newCall(request).execute()) {

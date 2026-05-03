@@ -1,38 +1,19 @@
-package mesh.agent.config;
+package mesh.app.config;
 
 import mesh.core.ens.AgentEnsResolver;
 import mesh.core.ens.AgentRegistry;
-import mesh.core.manifest.ManifestValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class AgentConfig {
+public class AppConfig {
 
-    /**
-     * The ENS name this agent instance represents.
-     * Set via ENS_NAME env var, e.g. "researcher.agentmesh-dev.eth"
-     */
-    @Value("${ENS_NAME}")
-    private String ensName;
-
-    /**
-     * The parent ENS domain used for agent discovery.
-     */
     @Value("${AGENT_PARENT_DOMAIN:agentmesh-dev.eth}")
     private String parentDomain;
 
-    /**
-     * Dev mode: use local fallback manifests when ENS resolution fails.
-     */
     @Value("${AGENT_DEV_MODE:true}")
     private boolean devMode;
-
-    @Bean
-    public String ensName() {
-        return ensName;
-    }
 
     @Bean
     public AgentEnsResolver agentEnsResolver() {
@@ -42,10 +23,5 @@ public class AgentConfig {
     @Bean
     public AgentRegistry agentRegistry(AgentEnsResolver resolver) {
         return new AgentRegistry(resolver, parentDomain, devMode);
-    }
-
-    @Bean
-    public ManifestValidator manifestValidator() {
-        return new ManifestValidator();
     }
 }

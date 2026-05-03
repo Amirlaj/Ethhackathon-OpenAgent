@@ -41,13 +41,21 @@ public class InvokeController {
             return ResponseEntity.badRequest().build();
         }
 
-        InvokeResult result = invokeService.run(request.task(), request.callerEns());
+        try {
+            InvokeResult result = invokeService.run(request.task(), request.callerEns());
 
-        return ResponseEntity.ok(new InvokeResponse(
-                result.answer(),
-                identityService.getIdentity().ensName(),
-                result.steps()
-        ));
+            return ResponseEntity.ok(new InvokeResponse(
+                    result.answer(),
+                    identityService.getIdentity().ensName(),
+                    result.steps()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new InvokeResponse(
+                    "Error: " + e.getMessage(),
+                    identityService.getIdentity().ensName(),
+                    List.of("[ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage())
+            ));
+        }
     }
 
     @GetMapping("/identity")
