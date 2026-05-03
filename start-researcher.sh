@@ -1,8 +1,12 @@
 #!/bin/bash
 # Start the researcher agent on port 8082
-set -a
-source "$(dirname "$0")/.env.researcher"
-set +a
+cd "$(dirname "$0")"
+
+if [ -f .env.researcher ]; then
+    set -a; source .env.researcher; set +a
+else
+    echo "Warning: .env.researcher not found — using defaults"
+fi
 
 export ENS_NAME="${ENS_NAME:-researcher.agentmesh-dev.eth}"
 export SERVER_PORT="${SERVER_PORT:-8082}"

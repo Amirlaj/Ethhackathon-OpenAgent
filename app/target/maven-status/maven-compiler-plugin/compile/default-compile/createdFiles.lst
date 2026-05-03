@@ -1,0 +1,5 @@
+mesh/app/AppApplication.class
+mesh/app/controller/AppController$InvokeResponse.class
+mesh/app/controller/AppController.class
+mesh/app/config/AppConfig.class
+mesh/app/controller/AppController$InvokeRequest.class

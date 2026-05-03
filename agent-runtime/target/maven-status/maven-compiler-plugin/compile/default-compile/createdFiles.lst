@@ -1,0 +1,11 @@
+mesh/agent/invoke/InvokeController$InvokeResponse.class
+mesh/agent/invoke/InvokeController.class
+mesh/agent/AgentApplication.class
+mesh/agent/invoke/DelegationService.class
+mesh/agent/invoke/InvokeService.class
+mesh/agent/identity/AgentIdentityService.class
+mesh/agent/invoke/DelegationException.class
+mesh/agent/invoke/InvokeController$InvokeRequest.class
+mesh/agent/config/AgentConfig.class
+mesh/agent/invoke/DelegationResult.class
+mesh/agent/invoke/InvokeResult.class

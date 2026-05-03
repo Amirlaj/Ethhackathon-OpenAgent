@@ -1,0 +1,9 @@
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/ens/AgentEnsResolver.java
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/ens/AgentRegistry.java
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/ens/EnsNamehash.java
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/ens/EnsResolutionException.java
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/ens/TextRecordClient.java
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/manifest/AgentManifest.java
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/manifest/InvalidManifestException.java
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/manifest/ManifestParseException.java
+/Users/amirlajevardi/Downloads/Ethhackathon-OpenAgent/core/src/main/java/mesh/core/manifest/ManifestValidator.java

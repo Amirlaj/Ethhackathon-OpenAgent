@@ -1,8 +1,10 @@
 #!/bin/bash
 # Start the web UI on port 8080
-set -a
-source "$(dirname "$0")/.env"
-set +a
+cd "$(dirname "$0")"
+
+if [ -f .env ]; then
+    set -a; source .env; set +a
+fi
 
 export AGENT_DEV_MODE=true
 export SERVER_PORT=8080
