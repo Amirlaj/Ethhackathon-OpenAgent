@@ -1,0 +1,12 @@
+mesh/core/ens/AgentRegistry.class
+mesh/core/manifest/AgentManifest.class
+mesh/core/manifest/InvalidManifestException.class
+mesh/core/ens/AgentEnsResolver.class
+mesh/core/ens/TextRecordClient.class
+mesh/core/manifest/ManifestParseException.class
+mesh/core/manifest/ManifestValidator$ValidationResult.class
+mesh/core/manifest/ManifestValidator.class
+mesh/core/ens/EnsResolutionException.class
+mesh/core/manifest/AgentManifest$1.class
+mesh/core/manifest/AgentManifest$Builder.class
+mesh/core/ens/EnsNamehash.class

@@ -17,8 +17,8 @@ import java.util.logging.Logger;
 public class InvokeService {
 
     private static final Logger log = Logger.getLogger(InvokeService.class.getName());
-    private static final String LLM_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-    private static final String MODEL = "gemini-2.0-flash";
+    private static final String LLM_URL = "https://api.groq.com/openai/v1/chat/completions";
+    private static final String MODEL = "llama-3.1-8b-instant";
     private static final MediaType JSON_MEDIA = MediaType.get("application/json");
 
     private final String llmApiKey;
@@ -29,7 +29,7 @@ public class InvokeService {
     private final ObjectMapper mapper;
 
     public InvokeService(
-            @Value("${GEMINI_API_KEY:}") String llmApiKey,
+            @Value("${GROQ_API_KEY:}") String llmApiKey,
             @Value("${SEARCH_API_KEY:}") String searchApiKey,
             DelegationService delegation,
             AgentIdentityService identityService
@@ -54,8 +54,8 @@ public class InvokeService {
 
         // Check API key
         if (llmApiKey == null || llmApiKey.isBlank()) {
-            steps.add("[ERROR] GEMINI_API_KEY is not set. Cannot process task.");
-            return new InvokeResult("Error: GEMINI_API_KEY environment variable is not configured.", steps);
+            steps.add("[ERROR] GROQ_API_KEY is not set. Cannot process task.");
+            return new InvokeResult("Error: GROQ_API_KEY environment variable is not configured.", steps);
         }
 
         // delegate tool
@@ -138,7 +138,7 @@ public class InvokeService {
     }
 
     private JsonNode callLlm(ArrayNode messages, ArrayNode tools, boolean forceTool) {
-        int maxRetries = 5;
+        int maxRetries = 3;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
                 ObjectNode body = mapper.createObjectNode()
@@ -146,25 +146,32 @@ public class InvokeService {
                         .put("max_tokens", 1024);
                 body.set("messages", messages);
                 body.set("tools", tools);
-                body.put("tool_choice", forceTool ? "required" : "auto");
+                // Gemini OpenAI compat works best with "auto"
+                body.put("tool_choice", "auto");
+
+                String jsonBody = mapper.writeValueAsString(body);
+                log.info("[LLM] Calling " + MODEL + " (attempt " + (attempt+1) + ")");
 
                 Request request = new Request.Builder()
                         .url(LLM_URL)
                         .addHeader("Authorization", "Bearer " + llmApiKey)
-                        .post(RequestBody.create(mapper.writeValueAsString(body), JSON_MEDIA))
+                        .post(RequestBody.create(jsonBody, JSON_MEDIA))
                         .build();
 
                 try (Response response = http.newCall(request).execute()) {
                     String responseBody = response.body().string();
                     if (response.code() == 429) {
-                        int waitSeconds = 10 + (attempt * 5);
-                        log.warning("[LLM] Rate limited, waiting " + waitSeconds + "s (attempt " + (attempt+1) + ")");
+                        int waitSeconds = 5 + (attempt * 5);
+                        log.warning("[LLM] Rate limited (429), response: " + responseBody);
+                        log.warning("[LLM] Waiting " + waitSeconds + "s before retry...");
                         Thread.sleep(waitSeconds * 1000L);
                         continue;
                     }
                     if (!response.isSuccessful()) {
+                        log.warning("[LLM] Error " + response.code() + ": " + responseBody);
                         throw new RuntimeException("LLM API error " + response.code() + ": " + responseBody);
                     }
+                    log.info("[LLM] Response received OK");
                     return mapper.readTree(responseBody);
                 }
             } catch (InterruptedException e) {
