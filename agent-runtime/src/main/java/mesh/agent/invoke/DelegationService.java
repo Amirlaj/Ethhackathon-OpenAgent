@@ -55,7 +55,9 @@ public class DelegationService {
 
         log.info("[Delegate] Looking for agent with capability: " + capability);
 
-        Optional<AgentManifest> peerOpt = registry.findByCapability(capability);
+        // Filter out self to prevent recursive delegation loops
+        Optional<AgentManifest> peerOpt = registry.findByCapability(capability)
+                .filter(m -> !m.ensName().equals(callerEns));
 
         if (peerOpt.isEmpty()) {
             throw new DelegationException("No agent found with capability: " + capability);

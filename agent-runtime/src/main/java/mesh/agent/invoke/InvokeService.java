@@ -86,12 +86,22 @@ public class InvokeService {
         tools.add(buildTool("webSearch",
                 "Search the web for current information on a topic.", searchParams));
 
-        String systemPrompt = String.format(
-                "You are %s. Your only job is to use tools — never write tool calls as text.\n" +
-                        "To research anything, call the delegate tool with capability='web-search'.\n" +
-                        "After you get the result back, write your final answer as plain text with no tool calls.",
-                myEns
-        );
+        // Role-aware system prompt: researcher uses its local webSearch tool,
+        // other agents (e.g. orchestrator) delegate via ENS.
+        String systemPrompt;
+        if (myEns.contains("researcher")) {
+            systemPrompt = String.format(
+                    "You are %s. You have a webSearch tool — always use it directly to research topics.\n" +
+                    "Do NOT call the delegate tool for web-search — you ARE the web-search agent.\n" +
+                    "After getting search results, write your final answer as plain text with no tool calls.",
+                    myEns);
+        } else {
+            systemPrompt = String.format(
+                    "You are %s. Your only job is to use tools — never write tool calls as text.\n" +
+                    "To research anything, call the delegate tool with capability='web-search'.\n" +
+                    "After you get the result back, write your final answer as plain text with no tool calls.",
+                    myEns);
+        }
 
         ArrayNode messages = mapper.createArrayNode();
         messages.add(mapper.createObjectNode()

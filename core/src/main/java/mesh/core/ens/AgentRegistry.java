@@ -26,10 +26,12 @@ public class AgentRegistry {
             "researcher", 8082
     );
 
-    // Default dev-mode capabilities
+    // Default dev-mode capabilities (include common synonyms the LLM may use)
     private static final java.util.Map<String, List<String>> DEV_CAPABILITIES = java.util.Map.of(
             "orchestrator", List.of("orchestrate", "delegate"),
-            "researcher", List.of("web-search", "summarise")
+            "researcher", List.of("web-search", "summarise", "summarize", "summary",
+                    "text-summarise", "text-summarize", "parse-text",
+                    "natural-language-processing", "research")
     );
 
     public AgentRegistry(AgentEnsResolver resolver, String parentDomain) {
